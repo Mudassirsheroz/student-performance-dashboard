@@ -1,0 +1,113 @@
+import pandas as pd
+import dash
+from dash import dcc, html, Input, Output
+import plotly.express as px
+
+# Load data (CSV file should be in same folder as this script)
+df = pd.read_csv('StudentsPerformance (1).csv')
+
+app = dash.Dash(__name__)
+app.title = "Students Performance Dashboard"
+
+app.layout = html.Div([
+    html.H1("Students Performance Dashboard", style={'textAlign': 'center'}),
+    
+    # Summary Cards
+    html.Div([
+        html.Div([
+            html.H3("Total Students"),
+            html.P(f"{df.shape[0]}")
+        ], className='card'),
+        
+        html.Div([
+            html.H3("Average Math Score"),
+            html.P(f"{df['math score'].mean():.2f}")
+        ], className='card'),
+        
+        html.Div([
+            html.H3("Average Reading Score"),
+            html.P(f"{df['reading score'].mean():.2f}")
+        ], className='card'),
+        
+        html.Div([
+            html.H3("Average Writing Score"),
+            html.P(f"{df['writing score'].mean():.2f}")
+        ], className='card'),
+    ], style={'display': 'flex', 'justifyContent': 'space-around', 'marginBottom': 30}),
+    
+    # Gender Distribution
+    html.Div([
+        html.H3("Gender Distribution"),
+        dcc.Graph(
+            figure=px.histogram(df, x='gender', color='gender', 
+                                title='Count of Students by Gender', 
+                                labels={'gender': 'Gender'}, 
+                                barmode='group')
+        )
+    ]),
+    
+    # Score Distribution with Dropdown
+    html.Div([
+        html.H3("Score Distribution"),
+        dcc.Dropdown(
+            id='score-dropdown',
+            options=[
+                {'label': 'Math Score', 'value': 'math score'},
+                {'label': 'Reading Score', 'value': 'reading score'},
+                {'label': 'Writing Score', 'value': 'writing score'},
+            ],
+            value='math score',
+            clearable=False,
+            style={'width': '50%'}
+        ),
+        dcc.Graph(id='score-histogram')
+    ]),
+    
+    # Boxplot for Test Preparation Course vs Scores
+    html.Div([
+        html.H3("Scores by Test Preparation Course"),
+        dcc.Dropdown(
+            id='score-dropdown-box',
+            options=[
+                {'label': 'Math Score', 'value': 'math score'},
+                {'label': 'Reading Score', 'value': 'reading score'},
+                {'label': 'Writing Score', 'value': 'writing score'},
+            ],
+            value='math score',
+            clearable=False,
+            style={'width': '50%'}
+        ),
+        dcc.Graph(id='score-boxplot')
+    ]),
+    
+    # Scatter Plot Reading vs Writing Scores colored by Gender
+    html.Div([
+        html.H3("Reading vs Writing Scores"),
+        dcc.Graph(
+            figure=px.scatter(df, x='reading score', y='writing score', color='gender',
+                              title='Reading vs Writing Scores by Gender',
+                              labels={'reading score': 'Reading Score', 'writing score': 'Writing Score'})
+        )
+    ])
+], style={'maxWidth': '900px', 'margin': 'auto'})
+
+# Callbacks
+@app.callback(
+    Output('score-histogram', 'figure'),
+    Input('score-dropdown', 'value')
+)
+def update_histogram(score_col):
+    fig = px.histogram(df, x=score_col, nbins=20, title=f'Distribution of {score_col.title()}',
+                       labels={score_col: score_col.title()})
+    fig.update_layout(bargap=0.1)
+    return fig
+
+@app.callback(
+    Output('score-boxplot', 'figure'),
+    Input('score-dropdown-box', 'value')
+)
+def update_boxplot(score_col):
+    fig = px.box(df, x='test preparation course', y=score_col,
+                 title=f'{score_col.title()} by Test Preparation Course',
+                 labels={'test preparation course': 'Test Preparation Course', score_col: score_col.title()})
+    return fig
